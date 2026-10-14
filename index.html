@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pneumonia Classification</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --text: #1b2430;
+    --muted: #5b6676;
+    --accent: #2563eb;
+    --accent-text: #ffffff;
+    --border: #dde3ec;
+    --warn-bg: #fff4e5;
+    --warn-text: #7a4a00;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10151c;
+      --surface: #19202a;
+      --text: #e8edf4;
+      --muted: #9aa6b6;
+      --accent: #5b8cff;
+      --accent-text: #0b1220;
+      --border: #2a3441;
+      --warn-bg: #3a2a10;
+      --warn-text: #ffd596;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    line-height: 1.6;
+    padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px);
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 0; }
+  h1 { font-size: 2rem; margin: 0 0 8px; }
+  h2 { font-size: 1.2rem; margin: 32px 0 12px; }
+  p.lead { color: var(--muted); font-size: 1.1rem; margin: 0 0 24px; }
+  .btn {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--accent-text);
+    padding: 12px 22px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+  ol { padding-left: 20px; margin: 0; }
+  li { margin: 6px 0; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .grid .card strong { display: block; margin-bottom: 4px; }
+  .grid .card span { color: var(--muted); font-size: 0.95rem; }
+  .warn {
+    background: var(--warn-bg);
+    color: var(--warn-text);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-top: 32px;
+  }
+  footer { color: var(--muted); font-size: 0.85rem; margin-top: 32px; }
+  code { background: var(--surface); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Pneumonia Classification</h1>
+  <p class="lead">Upload a chest X-ray and get a predicted class with a confidence score, powered by a Keras image classifier.</p>
+
+  <a class="btn" href="http://localhost:8501">Open the app</a>
+
+  <h2>How it works</h2>
+  <div class="grid">
+    <div class="card"><strong>1. Upload</strong><span>Choose a PNG, JPG or JPEG chest X-ray.</span></div>
+    <div class="card"><strong>2. Preprocess</strong><span>The image is resized to 224×224 and normalized.</span></div>
+    <div class="card"><strong>3. Classify</strong><span>The model returns a label and a confidence score.</span></div>
+  </div>
+
+  <h2>Run it locally</h2>
+  <div class="card">
+    <ol>
+      <li>Install dependencies: <code>pip install -r requirements.txt</code></li>
+      <li>Place your model at <code>models/pneumonia_classifier.h5</code></li>
+      <li>Start the app: <code>streamlit run app.py</code></li>
+      <li>Open <code>http://localhost:8501</code> in your browser</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    <strong>Important:</strong> This tool is for educational purposes only. It is not a medical device and its output is not a diagnosis. Always consult a qualified healthcare professional.
+  </div>
+
+  <footer>Built with Streamlit, TensorFlow and Keras.</footer>
+</main>
+</body>
+</html>
