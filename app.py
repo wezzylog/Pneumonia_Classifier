@@ -26,7 +26,6 @@ def load_classifier():
 @st.cache_data
 def load_labels():
     with open('./models/labels.txt', 'r') as f:
-        # Handles lines like "0 NORMAL" and names with spaces, and a missing trailing newline
         return [line.strip().split(' ', 1)[1] for line in f if line.strip()]
 
 
@@ -48,3 +47,5 @@ if file is not None:
 
     st.write(f"## {class_name}")
     st.write(f"### Score: {conf_score * 100:.1f}%")
+
+st.caption("For educational purposes only. Not a medical diagnosis.")

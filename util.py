@@ -7,18 +7,18 @@ from PIL import Image, ImageOps
 
 
 def set_background(image_file):
-    """Set a local image as the Streamlit app background.
-    Silently skips if the file is missing so the app still runs."""
+    """Set a full-page background image. Silently skipped if the file is missing."""
     if not os.path.exists(image_file):
         return
     with open(image_file, 'rb') as f:
-        encoded = base64.b64encode(f.read()).decode()
+        b64 = base64.b64encode(f.read()).decode()
     st.markdown(
         f"""
         <style>
         .stApp {{
-            background-image: url(data:image/png;base64,{encoded});
+            background-image: url(data:image/png;base64,{b64});
             background-size: cover;
+            background-attachment: fixed;
         }}
         </style>
         """,
@@ -26,19 +26,13 @@ def set_background(image_file):
     )
 
 
-def classify(image, model, class_names, size=(224, 224)):
+def classify(image, model, class_names):
     """Return (class_name, confidence) for a PIL image.
 
-    Uses the Teachable Machine preprocessing: resize/crop to 224x224,
-    then scale pixels to [-1, 1]. Change `size` and the scaling if your
-    model was trained differently.
+    Preprocessing must match train.py: 224x224 RGB, scaled to [-1, 1].
     """
-    image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
-    arr = np.asarray(image).astype(np.float32)
-    arr = (arr / 127.5) - 1
-
-    batch = np.expand_dims(arr, axis=0)  # shape (1, 224, 224, 3)
-    prediction = model.predict(batch, verbose=0)
-
-    index = int(np.argmax(prediction[0]))
-    return class_names[index], float(prediction[0][index])
+    image = ImageOps.fit(image.convert('RGB'), (224, 224), Image.Resampling.LANCZOS)
+    arr = np.asarray(image).astype(np.float32) / 127.5 - 1.0
+    probs = model.predict(np.expand_dims(arr, 0), verbose=0)[0]
+    idx = int(np.argmax(probs))
+    return class_names[idx], float(probs[idx])
