@@ -1,51 +1,66 @@
+import base64
+import mimetypes
+from pathlib import Path
+
+import numpy as np
 import streamlit as st
-from PIL import Image
-from tensorflow.keras.models import load_model
-from tensorflow.keras.layers import DepthwiseConv2D
-from util import classify, set_background
+from PIL import Image, ImageOps
+
+IMG_SIZE = (224, 224)  # keep in sync with train.py
 
 
-def custom_objects():
-    # Newer Keras saves a 'groups' arg that older DepthwiseConv2D doesn't accept
-    class FixedDepthwiseConv2D(DepthwiseConv2D):
-        def __init__(self, **kwargs):
-            kwargs.pop('groups', None)
-            super().__init__(**kwargs)
-    return {'DepthwiseConv2D': FixedDepthwiseConv2D}
+@st.cache_data(show_spinner=False)
+def _encode_image(path: str) -> tuple[str, str]:
+    """Read and base64-encode a file once; cached across Streamlit reruns."""
+    mime = mimetypes.guess_type(path)[0] or "image/png"
+    return base64.b64encode(Path(path).read_bytes()).decode(), mime
 
 
-@st.cache_resource
-def load_classifier():
-    return load_model(
-        './models/pneumonia_classifier.h5',
-        custom_objects=custom_objects(),
-        compile=False,
+def set_background(image_file: str) -> None:
+    """Set a full-page background image. Silently skipped if the file is missing."""
+    if not Path(image_file).is_file():
+        return
+    b64, mime = _encode_image(image_file)
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-image: url(data:{mime};base64,{b64});
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
 
 
-@st.cache_data
-def load_labels():
-    with open('./models/labels.txt', 'r') as f:
-        return [line.strip().split(' ', 1)[1] for line in f if line.strip()]
+def preprocess(image: Image.Image) -> np.ndarray:
+    """224x224 RGB, scaled to [-1, 1]. Must match train.py."""
+    image = ImageOps.exif_transpose(image)  # respect phone-camera rotation
+    image = ImageOps.fit(image.convert("RGB"), IMG_SIZE, Image.Resampling.LANCZOS)
+    return np.asarray(image, dtype=np.float32) / 127.5 - 1.0
 
 
-set_background('./bgs/bg5.png')
+def predict_probs(image: Image.Image, model, class_names: list[str]) -> np.ndarray:
+    probs = model.predict(preprocess(image)[None, ...], verbose=0)[0]
+    if len(probs) != len(class_names):
+        raise ValueError(
+            f"Model outputs {len(probs)} classes but {len(class_names)} names were given."
+        )
+    return probs
 
-st.title('Pneumonia Classification')
-st.header('Please upload a chest X-ray image')
 
-file = st.file_uploader('Choose an image', type=['png', 'jpg', 'jpeg'])
+def classify(image: Image.Image, model, class_names: list[str]) -> tuple[str, float]:
+    """Return (class_name, confidence) for a PIL image."""
+    probs = predict_probs(image, model, class_names)
+    idx = int(np.argmax(probs))
+    return class_names[idx], float(probs[idx])
 
-model = load_classifier()
-class_names = load_labels()
 
-if file is not None:
-    image = Image.open(file).convert('RGB')
-    st.image(image, use_container_width=True)
-
-    class_name, conf_score = classify(image, model, class_names)
-
-    st.write(f"## {class_name}")
-    st.write(f"### Score: {conf_score * 100:.1f}%")
-
-st.caption("For educational purposes only. Not a medical diagnosis.")
+def classify_top_k(image: Image.Image, model, class_names: list[str], k: int = 3):
+    """Return the k most likely (class_name, confidence) pairs, best first."""
+    probs = predict_probs(image, model, class_names)
+    top = np.argsort(probs)[::-1][:k]
+    return [(class_names[i], float(probs[i])) for i in top]
